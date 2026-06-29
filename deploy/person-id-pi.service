@@ -1,0 +1,16 @@
+[Unit]
+Description=Person ID Pi live beer counter
+After=multi-user.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/opt/person-id-pi
+ExecStart=/opt/person-id-pi/.venv/bin/python -m person_id_pi.cli serve --config /opt/person-id-pi/config/person-id-pi.json
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=45
+
+[Install]
+WantedBy=multi-user.target

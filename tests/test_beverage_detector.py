@@ -1,8 +1,7 @@
 import numpy as np
 
 from person_id_pi.beverage_config import BeverageDetectorConfig
-from person_id_pi.beverage_detector import MultiBeverageDetector, YoloBeverageDetector
-from person_id_pi.beverage_types import BeverageDetection
+from person_id_pi.beverage_detector import YoloBeverageDetector
 
 
 class _FakeBoxes:
@@ -73,35 +72,3 @@ def test_yolo_detector_respects_allowed_labels():
 
     assert len(detections) == 1
     assert detections[0].label == "cup"
-
-
-class _StaticDetector:
-    def __init__(self, detections):
-        self._detections = detections
-
-    def detect(self, frame):
-        return list(self._detections)
-
-
-def test_multi_detector_dedupes_same_label_overlap():
-    d1 = _StaticDetector(
-        [
-            BeverageDetection(bbox=(10, 10, 30, 30), label="can", score=0.70),
-            BeverageDetection(bbox=(50, 50, 80, 80), label="espresso_shot", score=0.65),
-        ]
-    )
-    d2 = _StaticDetector(
-        [
-            BeverageDetection(bbox=(11, 11, 31, 31), label="can", score=0.90),
-            BeverageDetection(bbox=(70, 70, 90, 90), label="can", score=0.50),
-        ]
-    )
-    detector = MultiBeverageDetector([d1, d2], dedupe_iou_threshold=0.5)
-
-    detections = detector.detect(np.zeros((64, 64, 3), dtype=np.uint8))
-
-    # Overlapping can boxes are deduped to the highest confidence instance.
-    can_boxes = [d for d in detections if d.label == "can"]
-    assert any(d.bbox == (11, 11, 31, 31) and d.score == 0.90 for d in can_boxes)
-    # Non-overlapping can and espresso shot should remain.
-    assert len(detections) == 3

@@ -1,16 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Literal, Tuple
+from typing import Dict, Literal, Optional, Tuple
 
 # Canonical beverage labels used throughout detection, events, and storage.
-BeverageLabel = Literal["cup", "can", "bottle", "espresso_shot"]
-BeerLabels = {
-    "can",
-    "bottle",
-    "cup",
-}  # "cup" is intentionally included per current counting policy.
-EspressoLabels = {"espresso_shot"}
+BeverageLabel = Literal["cup", "can", "bottle"]
+BeerLabels = {"can", "bottle", "cup"}
 
 
 @dataclass(frozen=True)
@@ -41,6 +36,10 @@ class BeverageEvent:
     confidence: float
     # UTC timestamp string (ISO-8601).
     timestamp_utc: str
+    # Audit artifact and normalized category added by the live service.
+    evidence_path: Optional[str] = None
+    container_category: Optional[str] = None
+    session_id: Optional[str] = None
 
     def to_dict(self) -> Dict[str, object]:
         return {
@@ -53,6 +52,9 @@ class BeverageEvent:
             "object_track_id": self.object_track_id,
             "confidence": self.confidence,
             "timestamp_utc": self.timestamp_utc,
+            "evidence_path": self.evidence_path,
+            "container_category": self.container_category,
+            "session_id": self.session_id,
         }
 
     @classmethod
@@ -67,14 +69,19 @@ class BeverageEvent:
             object_track_id=int(payload["object_track_id"]),
             confidence=float(payload["confidence"]),
             timestamp_utc=str(payload["timestamp_utc"]),
+            evidence_path=(
+                str(payload["evidence_path"])
+                if payload.get("evidence_path") is not None
+                else None
+            ),
+            container_category=(
+                str(payload["container_category"])
+                if payload.get("container_category") is not None
+                else None
+            ),
+            session_id=(
+                str(payload["session_id"])
+                if payload.get("session_id") is not None
+                else None
+            ),
         )
-
-
-@dataclass(frozen=True)
-class PerUserBeverageSummary:
-    # Counts for one user, split by current-video and all-time totals.
-    user_id: str
-    beers_in_video: int
-    beers_total: int
-    espressos_in_video: int = 0
-    espressos_total: int = 0

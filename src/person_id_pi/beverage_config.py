@@ -10,5 +10,4 @@ class BeverageDetectorConfig:
     model_path: str = "yolov8n.pt"
     # Minimum confidence for beverage detections.
     conf_min: float = 0.25
-    # Allowed labels in V1. Keep espresso label for future custom model support.
-    allowed_labels: Tuple[str, ...] = ("cup", "can", "bottle", "espresso_shot")
+    allowed_labels: Tuple[str, ...] = ("cup", "can", "bottle")

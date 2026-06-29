@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional, Protocol, Sequence, Tuple
+from typing import List, Optional, Protocol, Sequence
 
 import numpy as np
 
@@ -15,35 +15,13 @@ LABEL_ALIASES = {
     "beer can": "can",
     "soda can": "can",
     "soft drink can": "can",
-    "espresso shot": "espresso_shot",
-    "espresso_shot": "espresso_shot",
 }
 
 
 class BeverageDetector(Protocol):
-    """Minimal detector interface required by BeveragePipeline."""
+    """Minimal detector interface consumed by beer filtering."""
 
     def detect(self, frame: np.ndarray) -> List[BeverageDetection]: ...
-
-
-def _iou(box_a: Tuple[int, int, int, int], box_b: Tuple[int, int, int, int]) -> float:
-    ax1, ay1, ax2, ay2 = box_a
-    bx1, by1, bx2, by2 = box_b
-    inter_x1 = max(ax1, bx1)
-    inter_y1 = max(ay1, by1)
-    inter_x2 = min(ax2, bx2)
-    inter_y2 = min(ay2, by2)
-    inter_w = max(0, inter_x2 - inter_x1)
-    inter_h = max(0, inter_y2 - inter_y1)
-    inter_area = inter_w * inter_h
-    if inter_area == 0:
-        return 0.0
-    area_a = max(0, ax2 - ax1) * max(0, ay2 - ay1)
-    area_b = max(0, bx2 - bx1) * max(0, by2 - by1)
-    union = area_a + area_b - inter_area
-    if union <= 0:
-        return 0.0
-    return inter_area / union
 
 
 def _normalize_label(raw_label: str) -> Optional[BeverageLabel]:
@@ -135,44 +113,3 @@ class YoloBeverageDetector:
         if not isinstance(results, Sequence):
             results = [results]
         return self._parse_results(results)
-
-
-class MultiBeverageDetector:
-    """
-    Compose multiple beverage detectors and merge overlapping detections.
-
-    This allows running a primary model (e.g. beer classes) and a secondary
-    model (e.g. espresso-specific) in the same frame pass.
-    """
-
-    def __init__(
-        self,
-        detectors: Sequence[BeverageDetector],
-        dedupe_iou_threshold: float = 0.6,
-    ) -> None:
-        self.detectors = list(detectors)
-        self.dedupe_iou_threshold = dedupe_iou_threshold
-
-    def _dedupe(self, detections: List[BeverageDetection]) -> List[BeverageDetection]:
-        if not detections:
-            return []
-        # Keep strongest detections first and suppress same-label near-duplicates.
-        ordered = sorted(detections, key=lambda d: d.score, reverse=True)
-        kept: List[BeverageDetection] = []
-        for detection in ordered:
-            duplicate = False
-            for existing in kept:
-                if existing.label != detection.label:
-                    continue
-                if _iou(existing.bbox, detection.bbox) >= self.dedupe_iou_threshold:
-                    duplicate = True
-                    break
-            if not duplicate:
-                kept.append(detection)
-        return kept
-
-    def detect(self, frame: np.ndarray) -> List[BeverageDetection]:
-        merged: List[BeverageDetection] = []
-        for detector in self.detectors:
-            merged.extend(detector.detect(frame))
-        return self._dedupe(merged)

@@ -1,0 +1,39 @@
+{
+  "camera": {
+    "width": 1280,
+    "height": 720,
+    "fps": 15
+  },
+  "motion": {
+    "width": 320,
+    "height": 180,
+    "sample_fps": 5.0,
+    "pixel_delta": 25,
+    "changed_ratio": 0.02,
+    "sustained_samples": 2
+  },
+  "event": {
+    "pre_roll_seconds": 2.0,
+    "quiet_seconds": 3.0,
+    "max_seconds": 30.0,
+    "inference_stride": 3,
+    "multi_person_frames": 2,
+    "cooldown_seconds": 600.0,
+    "object_min_seen_frames": 5,
+    "object_iou_threshold": 0.3,
+    "association_max_distance": 0.35
+  },
+  "beer": {
+    "model_path": "yolov8n.pt",
+    "confidence_min": 0.25,
+    "can_aspect_ratio_min": 0.65,
+    "can_aspect_ratio_max": 2.4
+  },
+  "storage": {
+    "identity_store": "profiles/face_templates.json",
+    "beer_store": "profiles/beverage_events.json",
+    "evidence_dir": "events",
+    "decision_log": "events/decisions.jsonl",
+    "record_evidence": true
+  }
+}

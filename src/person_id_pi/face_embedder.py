@@ -19,11 +19,7 @@ class FaceEmbedderConfig:
 
 
 class FaceEmbedder:
-    """Stateless face detection + embedding interface.
-
-    This is a stub to keep the identity pipeline testable before wiring
-    in a concrete model (e.g., InsightFace or ArcFace).
-    """
+    """InsightFace detection and ArcFace embedding adapter."""
 
     def __init__(self, config: Optional[FaceEmbedderConfig] = None) -> None:
         self.config = config or FaceEmbedderConfig()
@@ -35,7 +31,9 @@ class FaceEmbedder:
             ) from exc
 
         self._app = FaceAnalysis(
-            name=self.config.model_name, providers=list(self.config.providers)
+            name=self.config.model_name,
+            providers=list(self.config.providers),
+            allowed_modules=["detection", "recognition"],
         )
         # ctx_id=-1 uses CPU; det_size controls the detector input size.
         self._app.prepare(ctx_id=-1, det_size=(640, 640))

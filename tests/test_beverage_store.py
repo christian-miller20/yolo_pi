@@ -2,7 +2,6 @@ from person_id_pi.beverage_store import BeverageStore
 from person_id_pi.beverage_types import BeverageEvent
 
 
-
 def test_get_total_beer_count(tmp_path):
     store = BeverageStore(tmp_path / "store.json")
     event1 = BeverageEvent(
@@ -42,6 +41,4 @@ def test_get_total_beer_count(tmp_path):
     )
     assert not store.add_event(dup_event1)  # Should return False due to duplicate
     assert store.total_beers_by_user() == {"alice": 2}
-    assert store.total_espressos_by_user() == {}
     assert store.list_events() == [event1, event2]
-

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from collections.abc import Iterable
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Dict, List
 
-from .beverage_types import BeerLabels, BeverageEvent, EspressoLabels
+from .beverage_types import BeerLabels, BeverageEvent
 
 
 class BeverageStore:
@@ -28,14 +30,29 @@ class BeverageStore:
             return
 
         data = json.loads(raw)
-        self._events = {
-            entry["event_id"]: BeverageEvent.from_dict(entry) for entry in data
-        }
+        events: Dict[str, BeverageEvent] = {}
+        for entry in data:
+            try:
+                event = BeverageEvent.from_dict(entry)
+            except (KeyError, TypeError, ValueError):
+                continue
+            events[event.event_id] = event
+        self._events = events
 
     def save(self) -> None:
         """Persist all events to disk."""
         payload = [event.to_dict() for event in self.list_events()]
-        self.path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        with NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=str(self.path.parent),
+            prefix=f".{self.path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            handle.write(json.dumps(payload, indent=2))
+            temp_path = Path(handle.name)
+        temp_path.replace(self.path)
 
     def list_events(self) -> List[BeverageEvent]:
         return sorted(self._events.values(), key=lambda e: e.timestamp_utc)
@@ -52,9 +69,17 @@ class BeverageStore:
         """All-time beer-like totals grouped by user_id."""
         return self._count_by_user_for_labels(BeerLabels)
 
-    def total_espressos_by_user(self) -> Dict[str, int]:
-        """All-time espresso totals grouped by user_id."""
-        return self._count_by_user_for_labels(EspressoLabels)
+    def latest_beer_timestamp(self, user_id: str) -> datetime | None:
+        timestamps: List[datetime] = []
+        for event in self._events.values():
+            if event.user_id != user_id or event.beverage_label not in BeerLabels:
+                continue
+            try:
+                timestamp = event.timestamp_utc.replace("Z", "+00:00")
+                timestamps.append(datetime.fromisoformat(timestamp))
+            except ValueError:
+                continue
+        return max(timestamps) if timestamps else None
 
     def _count_by_user_for_labels(self, labels: Iterable[str]) -> Dict[str, int]:
         """Shared aggregation helper for per-user beverage totals."""

@@ -1,6 +1,8 @@
 /data
 /runs
 /profiles
+/events
+/smoke
 output.txt
 /espresso_training
 /notes
